@@ -242,6 +242,7 @@ static int wma_decode_init(AVCodecContext * avctx)
     uint8_t *extradata;
 
     s->avctx = avctx;
+    avctx->sample_fmt = SAMPLE_FMT_S16;
 
     /* extract flag infos */
     flags1 = 0;
@@ -264,11 +265,9 @@ static int wma_decode_init(AVCodecContext * avctx)
     if(ff_wma_init(avctx, flags2)<0)
         return -1;
 
-    if(jz_cpu_type_id>=CPU_ID_JZ4750){
+   
         ff_imdct_half_fixed=ff_imdct_half_fixed_4750;
-    }else{
-        ff_imdct_half_fixed=ff_imdct_half_fixed_4740;
-    }
+ 
     /* init MDCT */
     for(i = 0; i < s->nb_block_sizes; i++)
         ff_mdct_init_fixed(&s->mdct_ctx[i], s->frame_len_bits - i + 1, 1);
@@ -493,7 +492,7 @@ static int decode_exp_vlc(WMACodecContext *s, int ch)
         }else {
           v = tablefix16_10exp1div16[63];
           //v = (int)(pow(10, last_exp * (1.0 / 16.0)) * (1 << FRAC_BIT));
-          printf (" ++++ found error last_exp(1) = %d +++\n", last_exp);
+          kprintf (" ++++ found error last_exp(1) = %d +++\n", last_exp);
         }
         max_scale = v;
         n = *ptr++;
@@ -517,7 +516,7 @@ static int decode_exp_vlc(WMACodecContext *s, int ch)
         }else {
           v = tablefix16_10exp1div16[63];
           //v = (int)(pow(10, last_exp * (1.0 / 16.0)) * (1 << FRAC_BIT));
-          printf (" ++++ found error last_exp(2) = %d +++\n", last_exp);
+          kprintf (" ++++ found error last_exp(2) = %d +++\n", last_exp);
         }
         if (v > max_scale)
             max_scale = v;
@@ -644,15 +643,15 @@ void Calc_cmul_4740(FFTComplexFix *z,int are, int aim, int bre, int bim)
  * done
  */
 /* cos(2*pi*x/n) for 0<=x<=n/4, followed by its reverse */
-int32_t ff_cos_16[8];
-int32_t ff_cos_32[16];
-int32_t ff_cos_64[32];
-int32_t ff_cos_128[64];
-int32_t ff_cos_256[128];
-int32_t ff_cos_512[256];
-int32_t ff_cos_1024[512];
-int32_t *ff_cos_tabs[] = {
-    ff_cos_16, ff_cos_32, ff_cos_64, ff_cos_128, ff_cos_256, ff_cos_512, ff_cos_1024
+int32_t ffw_cos_16[8];
+int32_t ffw_cos_32[16];
+int32_t ffw_cos_64[32];
+int32_t ffw_cos_128[64];
+int32_t ffw_cos_256[128];
+int32_t ffw_cos_512[256];
+int32_t ffw_cos_1024[512];
+int32_t *ffw_cos_tabs[] = {
+    ffw_cos_16, ffw_cos_32, ffw_cos_64, ffw_cos_128, ffw_cos_256, ffw_cos_512, ffw_cos_1024
 };
 
 static int split_radix_permutation(int i, int n, int inverse)
@@ -689,7 +688,7 @@ int ff_fft_init_fixed(FFTContextFix *s, int nbits, int inverse)
     for(j=4; j<=nbits; j++) {
         int m = 1<<j;
         double freq = 2*M_PI/m;
-        int32_t *tab = ff_cos_tabs[j-4];
+        int32_t *tab = ffw_cos_tabs[j-4];
         for(i=0; i<=m/4; i++)
             tab[i] = FIXED31(cos(i*freq));
         for(i=1; i<m/4; i++)
@@ -838,7 +837,7 @@ static void fft##n##_4740(FFTComplexFix *z)\
     fft##n2##_4740(z);\
     fft##n4##_4740(z+n4*2);\
     fft##n4##_4740(z+n4*3);\
-    pass_4740(z,ff_cos_##n,n4/2);\
+    pass_4740(z,ffw_cos_##n,n4/2);\
 }
 
 
@@ -887,8 +886,8 @@ static void fft16_4740(FFTComplexFix *z)
 
     TRANSFORM_ZERO(z[0],z[4],z[8],z[12]);
     TRANSFORM(z[2],z[6],z[10],z[14],M_SQRT1_2_FIX,M_SQRT1_2_FIX);
-    TRANSFORM(z[1],z[5],z[9],z[13],ff_cos_16[1],ff_cos_16[3]);
-    TRANSFORM(z[3],z[7],z[11],z[15],ff_cos_16[3],ff_cos_16[1]);
+    TRANSFORM(z[1],z[5],z[9],z[13],ffw_cos_16[1],ffw_cos_16[3]);
+    TRANSFORM(z[3],z[7],z[11],z[15],ffw_cos_16[3],ffw_cos_16[1]);
 }
 DECL_FFT(32,16,8)
 DECL_FFT(64,32,16)
@@ -1011,7 +1010,7 @@ static void fft##n##_4750(FFTComplexFix *z)\
     fft##n2##_4750(z);\
     fft##n4##_4750(z+n4*2);\
     fft##n4##_4750(z+n4*3);\
-    pass_4750(z,ff_cos_##n,n4/2);\
+    pass_4750(z,ffw_cos_##n,n4/2);\
 }
 
 
@@ -1059,8 +1058,8 @@ static void fft16_4750(FFTComplexFix *z)
 
     TRANSFORM_ZERO(z[0],z[4],z[8],z[12]);
     TRANSFORM(z[2],z[6],z[10],z[14],M_SQRT1_2_FIX,M_SQRT1_2_FIX);
-    TRANSFORM(z[1],z[5],z[9],z[13],ff_cos_16[1],ff_cos_16[3]);
-    TRANSFORM(z[3],z[7],z[11],z[15],ff_cos_16[3],ff_cos_16[1]);
+    TRANSFORM(z[1],z[5],z[9],z[13],ffw_cos_16[1],ffw_cos_16[3]);
+    TRANSFORM(z[3],z[7],z[11],z[15],ffw_cos_16[3],ffw_cos_16[1]);
 }
 DECL_FFT(32,16,8)
 DECL_FFT(64,32,16)
@@ -1635,8 +1634,10 @@ static int wma_decode_frame(WMACodecContext *s, int16_t *samples)
 
 static int wma_decode_superframe(AVCodecContext *avctx,
                                  void *data, int *data_size,
-                                 uint8_t *buf, int buf_size)
+                                 AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;	
     WMACodecContext *s = avctx->priv_data;
     int nb_frames, bit_offset, i, pos, len;
     uint8_t *q;
@@ -1729,26 +1730,38 @@ static int wma_decode_superframe(AVCodecContext *avctx,
     return -1;
 }
 
-AVCodec wmav1_decoder =
+static av_cold void flush(AVCodecContext *avctx)
+{
+    WMACodecContext *s = avctx->priv_data;
+
+    s->last_bitoffset=
+    s->last_superframe_len= 0;
+}
+
+AVCodec wmafixv1_decoder =
 {
     "wmav1",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_WMAV1,
     sizeof(WMACodecContext),
     wma_decode_init,
     NULL,
     ff_wma_end,
     wma_decode_superframe,
+    .flush=flush,
+    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 1"),
 };
 
-AVCodec wmav2_decoder =
+AVCodec wmafixv2_decoder =
 {
     "wmav2",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_WMAV2,
     sizeof(WMACodecContext),
     wma_decode_init,
     NULL,
     ff_wma_end,
     wma_decode_superframe,
+    .flush=flush,
+    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 2"),
 };

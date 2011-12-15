@@ -204,7 +204,7 @@ int ff_wma_init(AVCodecContext * avctx, int flags2)
             if (s->version == 1) {
                 lpos = 0;
                 for(i=0;i<25;i++) {
-                    a = wma_critical_freqs[i];
+                    a = ff_wma_critical_freqs[i];
                     b = s->sample_rate;
                     pos = ((block_len * 2 * a)  + (b >> 1)) / b;
                     if (pos > block_len)
@@ -238,7 +238,7 @@ int ff_wma_init(AVCodecContext * avctx, int flags2)
                     j = 0;
                     lpos = 0;
                     for(i=0;i<25;i++) {
-                        a = wma_critical_freqs[i];
+                        a = ff_wma_critical_freqs[i];
                         b = s->sample_rate;
                         pos = ((block_len * 2 * a)  + (b << 1)) / (4 * b);
                         pos <<= 2;

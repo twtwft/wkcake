@@ -19,11 +19,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef WMA_H
-#define WMA_H
+#ifndef AVCODEC_WMA_H
+#define AVCODEC_WMA_H
 
-#include "bitstream.h"
+#include "get_bits.h"
+#include "put_bits.h"
 #include "dsputil.h"
+#include "fft.h"
 
 /* size of blocks */
 #define BLOCK_MIN_BITS 7
@@ -131,16 +133,16 @@ typedef struct WMACodecContext {
     uint8_t ms_stereo;                      ///< true if mid/side stereo mode
     uint8_t channel_coded[MAX_CHANNELS];    ///< true if channel is coded
     int exponents_bsize[MAX_CHANNELS];      ///< log2 ratio frame/exp. length
-    DECLARE_ALIGNED_16(int, exponents_fix[MAX_CHANNELS][BLOCK_MAX_SIZE]);
+    int exponents_fix[MAX_CHANNELS][BLOCK_MAX_SIZE];
     int max_exponent_fix[MAX_CHANNELS];
     int16_t coefs1[MAX_CHANNELS][BLOCK_MAX_SIZE];
-    DECLARE_ALIGNED_16(int, coefs_fix[MAX_CHANNELS][BLOCK_MAX_SIZE]);
-    DECLARE_ALIGNED_16(int, outputfix[BLOCK_MAX_SIZE * 2]);
+    int coefs_fix[MAX_CHANNELS][BLOCK_MAX_SIZE];
+    int outputfix[BLOCK_MAX_SIZE * 2];
     MDCTContextFix mdct_ctx[BLOCK_NB_SIZES];
     int *windowsfix[BLOCK_NB_SIZES];
-    DECLARE_ALIGNED_16(int, mdct_tmp[BLOCK_MAX_SIZE]); ///< temporary storage for imdct
+    int mdct_tmp[BLOCK_MAX_SIZE]; ///< temporary storage for imdct
     /* output buffer for one frame and the last for IMDCT windowing */
-    DECLARE_ALIGNED_16(int, frame_outfix[MAX_CHANNELS][BLOCK_MAX_SIZE * 2]);
+    int frame_outfix[MAX_CHANNELS][BLOCK_MAX_SIZE * 2];
     /* last frame info */
     uint8_t last_superframe[MAX_CODED_SUPERFRAME_SIZE + 4]; /* padding added */
     int last_bitoffset;
